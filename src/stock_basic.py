@@ -18,7 +18,7 @@ pro = ts.pro_api(token)
 def main(ts_name, start_date, end_date, period):
     ts_code = stock_info_cache.get_code_by_name(ts_name)
 
-    df = pro.daily_basic(ts_code=ts_code, start_date=start_date, end_date=end_date, fields='ts_code,trade_date,pe,pe_ttm,close')
+    df = pro.daily_basic(ts_code=ts_code, start_date=start_date, end_date=end_date, fields='ts_code,trade_date,pe,pe_ttm,close,dv_ttm')
     df = df.sort_values(by='trade_date')
     # df['trade_datetime'] = 
     df.index = pd.to_datetime(df['trade_date'])
@@ -65,12 +65,19 @@ def main(ts_name, start_date, end_date, period):
     plt.show()
 
 
+# 解决方案：使每个y轴的spine可见
+def make_patch_spines_invisible(ax):
+    ax.set_frame_on(True)
+    ax.patch.set_visible(False)
+    for sp in ax.spines.values():
+        sp.set_visible(False)
+
+
 def main2(ts_name, start_date, end_date, period):
     ts_code = stock_info_cache.get_code_by_name(ts_name)
 
-    df = pro.daily_basic(ts_code=ts_code, start_date=start_date, end_date=end_date, fields='ts_code,trade_date,pe,pe_ttm,close')
+    df = pro.daily_basic(ts_code=ts_code, start_date=start_date, end_date=end_date, fields='ts_code,trade_date,pe,pe_ttm,close,dv_ttm')
     df = df.sort_values(by='trade_date')
-    # df['trade_datetime'] = 
     df.index = pd.to_datetime(df['trade_date'])
 
     df.interpolate(method='time', inplace=True)
@@ -91,18 +98,17 @@ def main2(ts_name, start_date, end_date, period):
     print('std_dev_val', std_dev_val)
     print('quartiles', quartiles)
 
-    
     # 创建图形和第一个坐标轴
     fig, ax1 = plt.subplots()
 
     # 在第一个坐标轴上绘制第一条折线图
     ax1.plot(df.index, df.pe_ttm, 'b-', label='pe_ttm', marker='^')
-    ax1.axhline(y=mean_val, color='g', linestyle='--', label='Mean')
-    ax1.axhline(y=mean_val + std_dev_val, color='r', linestyle='--', label='Mean + Std Dev')
-    ax1.axhline(y=mean_val - std_dev_val, color='b', linestyle='--', label='Mean - Std Dev')
-    ax1.axhline(y=quartiles[2], color='r', linestyle='-.', label='75% percetile')
-    ax1.axhline(y=quartiles[1], color='g', linestyle='-.', label='50% percetile')
-    ax1.axhline(y=quartiles[0], color='b', linestyle='-.', label='25% percetile')
+    ax1.axhline(y=mean_val, color='g', linestyle='--', label='Mean of pe_ttm')
+    ax1.axhline(y=mean_val + std_dev_val, color='r', linestyle='--', label='Mean+StdDev of pe_ttm')
+    ax1.axhline(y=mean_val - std_dev_val, color='b', linestyle='--', label='Mean-StdDev of pe_ttm')
+    ax1.axhline(y=quartiles[2], color='r', linestyle='-.', label='75% Percetile of pe_ttm')
+    ax1.axhline(y=quartiles[1], color='g', linestyle='-.', label='50% Percetile of pe_ttm')
+    ax1.axhline(y=quartiles[0], color='b', linestyle='-.', label='25% Percetile of pe_ttm')
 
     ax1.set_xlabel('Date')
     ax1.set_ylabel('pe_ttm', color='b')
@@ -110,17 +116,26 @@ def main2(ts_name, start_date, end_date, period):
 
     # 使用twinx()创建第二个坐标轴，与第一个共享X轴
     ax2 = ax1.twinx()
-
     # 在第二个坐标轴上绘制第二条折线图
     ax2.plot(df.index, df.close, 'r--', label='price', marker='*')
     ax2.set_ylabel('price', color='r')
     ax2.tick_params(axis='y', labelcolor='r')
 
+    ax22 = ax1.twinx()
+    
+    # 调整第二个副y轴的位置，使其不与第一个重叠
+    ax22.spines["right"].set_position(("axes", 1.05))
+    make_patch_spines_invisible(ax22)
+    ax22.spines["right"].set_visible(True)
+    ax22.plot(df.index, df.dv_ttm, 'y--', label='dv_ttm', marker='o')
+    ax22.set_ylabel('dv_ttm', color='y')
+    ax22.tick_params(axis='y', labelcolor='y')
+
     # 设置图表标题
-    plt.title('Stock basic analysis')
+    plt.title(f'Stock basic analysis of {ts_code}')
 
     # 显示图例
-    fig.legend(loc="upper right", bbox_to_anchor=(1,1), bbox_transform=ax1.transAxes)
+    fig.legend(loc="upper left")
 
     # 展示图形
     plt.show()
@@ -137,7 +152,14 @@ def test(ts_name, start_date, end_date, period):
 if __name__ == "__main__":
     ts_name = '东阿阿胶'
     ts_name = '山西汾酒'
-    start_date, end_date = '20100101', '20250315'
+    ts_name = '五粮液'
+    ts_name = '双汇发展'
+    ts_name = '中国神华'
+    # ts_name = '贵州茅台'
+    ts_name = '华菱钢铁'
+    ts_name = '洛阳钼业'
+    start_date, end_date = '20040101', '20250315'
+    # start_date, end_date = '20040101', '20211231'
     period = 'M'
     main2(ts_name, start_date, end_date, period)
     # test(ts_name, start_date, end_date, period)
